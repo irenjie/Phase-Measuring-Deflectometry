@@ -18,6 +18,7 @@ typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Ma
 using Eigen::MatrixXf;
 using Eigen::Matrix3f;
 using Eigen::Matrix4f;
+using Eigen::MatrixXi;
 
 using Eigen::VectorXf;
 using Eigen::Vector2f;

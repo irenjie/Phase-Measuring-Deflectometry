@@ -18,11 +18,15 @@ CONFIG += console
 
 SOURCES += \
     algorithm_PMD.cpp \
+    cameracontrol.cpp \
+    fullscreen.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
     algorithm_PMD.h \
+    cameracontrol.h \
+    fullscreen.h \
     inc.h \
     mainwindow.h
 
@@ -45,3 +49,10 @@ else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../Software/op
 
 INCLUDEPATH += $$PWD/../../../../Software/opencv411/include/debug
 DEPENDPATH += $$PWD/../../../../Software/opencv411/include/debug
+
+# 相机 SDK
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/'../../../../Software/GalaxySDK/Samples/C++ SDK/lib/x64/' -lGxIAPICPPEx
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/'../../../../Software/GalaxySDK/Samples/C++ SDK/lib/x64/' -lGxIAPICPPExd
+
+INCLUDEPATH += $$PWD/'../../../../Software/GalaxySDK/Samples/C++ SDK/inc'
+DEPENDPATH += $$PWD/'../../../../Software/GalaxySDK/Samples/C++ SDK/inc'
