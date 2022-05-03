@@ -65,11 +65,11 @@
      <string>输出</string>
     </property>
    </widget>
-   <widget class="QRadioButton" name="pics_Exist_radio">
+   <widget class="QRadioButton" name="imgs_exist_radio">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>80</y>
+      <x>140</x>
+      <y>90</y>
       <width>151</width>
       <height>19</height>
      </rect>
@@ -84,8 +84,8 @@
    <widget class="QPushButton" name="sys_calib_Button">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>30</y>
+      <x>570</x>
+      <y>20</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -97,6 +97,47 @@
     </property>
     <property name="text">
      <string>系统标定</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="reconstruction_Button">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>80</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>重建</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>30</y>
+      <width>54</width>
+      <height>12</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>曝光时间</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="exposure_Edit">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>50</y>
+      <width>113</width>
+      <height>20</height>
+     </rect>
     </property>
    </widget>
   </widget>
