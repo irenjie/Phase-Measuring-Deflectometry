@@ -1,6 +1,6 @@
 {
     "workDir":"D:/Program/3DReconstruct/Phase Measuring Deflectometry/PMD",
-    "debug":true,
+    "debug":false,
     "screen_delay": 500,
     "screenHeight":0.19426111,
     "screenWidth":0.34535309,
@@ -8,7 +8,7 @@
     "screenCols":1920,
     "period_width":64,
     "period_height":36,
-    "image_size":[4024,3036],
+    "image_size":[2448,2048],
     "cameraMatrix":
         [3510.333, 0, 1209.65864,
         0, 3518.7035, 1030.643,
@@ -24,7 +24,7 @@
         0.0137839, 0.999141, 0.03908, -0.165624,
         -0.555441, 0.04015, -0.830586, 0.184212,
         0, 0, 0, 1],
-    "ROI":[0, 0, 1080, 1920],
+    "ROI":[500, 1200, 461, 461],
     "marker_width":16,
     "marker_height":9,
     "marker_length":0.0172676545,

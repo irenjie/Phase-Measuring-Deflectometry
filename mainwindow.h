@@ -19,11 +19,11 @@ struct PMDCFG {
     Vector3f camera_origin_world;   // 相机坐标系原点在世界坐标系下的表示
     Matrix4f CWT;           // 世界坐标系(参考平面坐标系)向量转到相机坐标系下的变换矩阵
     Matrix4f CST;           // screen 坐标系向量转到相机坐标系下的变换矩阵
-    MatrixXf refPlane;      // 相机光线与参考平面的交点，世界坐标系下
+    MatrixXf refPlane;      // 相机光线与参考平面的交点，世界坐标系下，3 x (img.h x img.w)
     uint16_t period_width;  // 宽度方向条纹周期数
     uint16_t period_height; // 高度方向条纹周期数
     Screen screen;          // 屏幕信息
-    MatrixXf screen_pix_pos;// 屏幕像素在世界坐标系下的位置
+    MatrixXf screen_pix_pos;// 屏幕像素在世界坐标系下的位置，3 x (screen.h x screen.w)
     std::vector<Mat> patterns;   // 投影的条纹图案
     std::vector<Eigen::MatrixXf> img_pats;  // 拍摄的条纹图像
     uint16_t screen_delay;  // 投影条纹时等待的时间(毫秒)

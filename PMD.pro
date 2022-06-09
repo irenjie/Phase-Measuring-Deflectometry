@@ -56,3 +56,5 @@ else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/'../../../../Software/G
 
 INCLUDEPATH += $$PWD/'../../../../Software/GalaxySDK/Samples/C++ SDK/inc'
 DEPENDPATH += $$PWD/'../../../../Software/GalaxySDK/Samples/C++ SDK/inc'
+
+

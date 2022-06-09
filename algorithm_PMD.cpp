@@ -47,9 +47,8 @@ bool save_matrix_as_ply(const MatrixXf& m, std::string path) {
          "property float32 z\n"
          "end_header\n";
 
-    for (uint32_t j = 0; j < m.cols(); j++) {
+    for (uint32_t j = 0; j < m.cols(); j++)
         fout << m(0, j) << " " << m(1, j) << " " << m(2, j) << "\n";
-    }
     fout.close();
     return true;
 }
@@ -171,11 +170,11 @@ bool screen_camera_phase_match(const vector<MatrixXf>& upm, const Screen& s, uin
 
     res.resize(3, img_size);
     for (uint32_t i = 0; i < coor_x.rows(); ++i) {
-        if (coor_x(i) >= upm[0].cols())
-            coor_x(i) = upm[0].cols() - 1;
-        if (coor_y(i) >= upm[0].rows())
-            coor_y(i) = upm[0].rows() - 1;
-        res.col(i) = spp.col(coor_y(i) * upm[0].cols() + coor_x(i));
+        if (coor_x(i) >= s.cols)
+            coor_x(i) = s.cols - 1;
+        if (coor_y(i) >= s.rows)
+            coor_y(i) = s.rows - 1;
+        res.col(i) = spp.col(coor_y(i) * s.cols + coor_x(i));
     }
 
     return true;
@@ -205,7 +204,7 @@ bool slope_calculate(const Vector3f& camera_world, const MatrixXf& refPlane, con
 }
 
 bool modal_reconstruction(const MatrixXf& sx, const MatrixXf& sy, MatrixXfR& Z, const std::vector<float>& rg, uint32_t terms) {
-    // resize 斜率为2*M*N x 1
+    // resize 斜率，2*M*N x 1
     MatrixXfR s(sx.rows() * 2, sx.cols());
     s.block(0, 0, sx.rows(), sx.cols()) = sx;
     s.block(sx.rows(), 0, sy.rows(), sy.cols()) = sy;

@@ -43,8 +43,11 @@ void MainWindow::on_load_cfg_Button_clicked() {
     ui->output_Edit->setPlainText("读取配置文件");
 
     ui->output_Edit->appendPlainText("读取图片尺寸，相机内参，计算相机光线");
-    // 图片尺寸，相机内参，相机光线
+    // roi,图片尺寸，相机内参，相机光线
     {
+        std::vector<uint32_t> t0 = cfg.at("ROI");
+        PMDcfg.roi = {t0[0], t0[1], t0[2], t0[3]};
+
         std::vector<float> t1 = cfg.at("cameraMatrix");
         MatrixXfR t2(1, t1.size());
         t2.row(0) = VectorXf::Map(&t1[0], t1.size());
@@ -58,7 +61,7 @@ void MainWindow::on_load_cfg_Button_clicked() {
         std::vector<uint16_t> t4 = cfg.at("image_size");
         PMDcfg.img_size.width = t4[0];
         PMDcfg.img_size.height = t4[1];
-        //        configCameraRay(PMDcfg.cameraMatrix, PMDcfg.img_size, 1.0, PMDcfg.camera_rays);
+        configCameraRay(PMDcfg.cameraMatrix, PMDcfg.img_size, 1.0, PMDcfg.camera_rays);
     }
 
     // intersection of camera rays and reference plane
@@ -72,15 +75,15 @@ void MainWindow::on_load_cfg_Button_clicked() {
         Vector4f O = matrix_to_home(Vector3f::Constant(3, 0));
         PMDcfg.camera_origin_world = (PMDcfg.CWT.inverse() * O).head(3);
 
-        //        configRefPlane(PMDcfg.CWT.block(0, 3, 3, 1), PMDcfg.CWT.block(0, 2, 3, 1), PMDcfg.camera_rays, PMDcfg.refPlane);
-        //        PMDcfg.camera_rays.resize(0, 0);
-        //        // 上面计算的是再相机坐标系下的参考平面，将其转换到世界坐标系下
-        //        MatrixXf ref_homo = matrix_to_home(PMDcfg.refPlane);
-        //        ref_homo = PMDcfg.CWT.inverse() * ref_homo;
-        //        PMDcfg.refPlane = ref_homo.block(0, 0, 3, ref_homo.cols());
+        configRefPlane(PMDcfg.CWT.block(0, 3, 3, 1), PMDcfg.CWT.block(0, 2, 3, 1), PMDcfg.camera_rays, PMDcfg.refPlane);
+        PMDcfg.camera_rays.resize(0, 0);
+        // 上面计算的是再相机坐标系下的参考平面，将其转换到世界坐标系下
+        MatrixXf ref_homo = matrix_to_home(PMDcfg.refPlane);
+        ref_homo = PMDcfg.CWT.inverse() * ref_homo;
+        PMDcfg.refPlane = ref_homo.block(0, 0, 3, ref_homo.cols());
     }
 
-    // 读取工作目录，屏幕信息，条纹信息，debug,roi,投影条纹,投影等待时间, CST, 屏幕像素位置
+    // 读取工作目录，屏幕信息，条纹信息，debug,投影条纹,投影等待时间, CST, 屏幕像素位置
     ui->output_Edit->appendPlainText("读取屏幕信息，条纹信息，debug,投影条纹");
     {
         cfg.at("workDir").get_to(PMDcfg.workDir);
@@ -90,8 +93,6 @@ void MainWindow::on_load_cfg_Button_clicked() {
         PMDcfg.period_height = cfg.at("period_height");
         PMDcfg.debug = cfg.at("debug");
         PMDcfg.screen_delay = cfg.at("screen_delay");
-        std::vector<uint32_t> t0 = cfg.at("ROI");
-        PMDcfg.roi = {t0[0], t0[1], t0[2], t0[3]};
 
         std::string patterns_path = PMDcfg.workDir + "/patterns";
         QDir dir(QString::fromStdString(patterns_path));
@@ -106,7 +107,7 @@ void MainWindow::on_load_cfg_Button_clicked() {
         PMDcfg.CST = t2;
 
         Matrix4f WST = PMDcfg.CWT.inverse() * PMDcfg.CST;
-        //        configScreenPixelPos(PMDcfg.screen, WST, PMDcfg.screen_pix_pos);
+        configScreenPixelPos(PMDcfg.screen, WST, PMDcfg.screen_pix_pos);
     }
 
     test();
@@ -183,7 +184,7 @@ void MainWindow::on_reconstruction_Button_clicked() {
         }
     }
 
-    // 屏幕像素与像素相位匹配，获取屏幕像素对应三维坐标
+    // 屏幕像素与像素相位匹配，获取屏幕像素对应三维坐标,世界坐标系下
     MatrixXf screen_camera_phase_match_pos; // 尺寸为 roi
     {
         std::vector<MatrixXf> ps_maps_roi(2);
@@ -213,12 +214,97 @@ void MainWindow::on_reconstruction_Button_clicked() {
         if (PMDcfg.debug) {
             save_matrix_as_img(slope[0], PMDcfg.workDir + "/debug/slope_x.bmp");
             save_matrix_as_img(slope[1], PMDcfg.workDir + "/debug/slope_y.bmp");
-
-            save_matrix_as_txt(slope[0], "D:/Program/3DReconstruct/Phase Measuring Deflectometry/test_x.txt", true);
-            save_matrix_as_txt(slope[1], "D:/Program/3DReconstruct/Phase Measuring Deflectometry/test_y.txt", true);
         }
     }
 
+    // 重建高度
+    MatrixXfR Z;
+    {
+        MatrixXfR X_ref = PMDcfg.refPlane.row(0), Y_ref =  PMDcfg.refPlane.row(1);
+        X_ref.resize(PMDcfg.img_size.height, PMDcfg.img_size.width);
+        Y_ref.resize(PMDcfg.img_size.height, PMDcfg.img_size.width);
+
+        MatrixXfR X_roi = X_ref.block(PMDcfg.roi.startRow, PMDcfg.roi.startCol, PMDcfg.roi.blockRows, PMDcfg.roi.blockCols);
+        MatrixXfR Y_roi = Y_ref.block(PMDcfg.roi.startRow, PMDcfg.roi.startCol, PMDcfg.roi.blockRows, PMDcfg.roi.blockCols);
+        std::vector<float> range = {X_roi(0, 0) * 1000, X_roi(0, PMDcfg.roi.blockCols - 1) * 1000,
+                                    Y_roi(0, 0) * 1000, Y_roi(PMDcfg.roi.blockRows - 1, 0) * 1000,
+                                   };
+
+        modal_reconstruction(slope[0], slope[1], Z, range, 4);
+
+        save_matrix_as_txt(X_roi, PMDcfg.workDir + "/../X_roi.txt", true);
+        save_matrix_as_txt(Y_roi, PMDcfg.workDir + "/../Y_roi.txt", true);
+        save_matrix_as_txt(Z, PMDcfg.workDir + "/../Z.txt", true);
+
+        // 测试吧
+        if (PMDcfg.debug) {
+            save_matrix_as_txt(slope[0], PMDcfg.workDir + "/../slope_x.txt", true);
+            save_matrix_as_txt(slope[1], PMDcfg.workDir + "/../slope_y.txt", true);
+
+            // 保存屏幕，参考平面，相机原点为 PLY 文件
+            MatrixXf& r_p = PMDcfg.refPlane;
+            MatrixXf scr;
+            screen_camera_phase_match(ps_maps, PMDcfg.screen, PMDcfg.period_width, PMDcfg.period_height, PMDcfg.screen_pix_pos, scr);
+            Vector3f& cam = PMDcfg.camera_origin_world;
+            MatrixXf system(3, r_p.cols() + scr.cols() + cam.cols());
+            system.block(0, 0, 3, r_p.cols()) = r_p;
+            system.block(0, r_p.cols(), 3, scr.cols()) = scr;
+            system.block(0, r_p.cols() + scr.cols(), 3, cam.cols()) = cam;
+
+            uint32_t x = PMDcfg.roi.startCol;
+            uint32_t y = PMDcfg.roi.startRow;
+            uint32_t r = PMDcfg.roi.blockRows;
+            uint32_t c = PMDcfg.roi.blockCols;
+            uint32_t w = PMDcfg.img_size.width;
+            uint32_t h = PMDcfg.img_size.height;
+
+            std::ofstream fout(PMDcfg.workDir + "/../system.ply");
+            fout << "ply\n"
+                 "format ascii 1.0\n"
+                 "element vertex " << system.cols() << "\n"
+                 "property float32 x\n"
+                 "property float32 y\n"
+                 "property float32 z\n"
+                 "element edge " << (r + c) * 2 - 2 << "\n"
+                 "property int vertex1\n"
+                 "property int vertex2\n"
+                 "end_header\n";
+
+            for (uint32_t j = 0; j < system.cols(); j++)
+                fout << system(0, j) << " " << system(1, j) << " " << system(2, j) << "\n";
+
+            // 写入线,记录roi的四条边
+            for (uint32_t i = 0; i < c; ++i) {
+                uint32_t p1 = y * w + x + i;            // refplane 中点下标
+                uint32_t p2 = p1 + PMDcfg.refPlane.cols();  // screen_camera 中点下标
+                fout << p1 << " " << p2 << "\n";
+                p1 += w * (r - 1);
+                p2 = p1 + PMDcfg.refPlane.cols();
+                fout << p1 << " " << p2 << "\n";
+            }
+            for (uint32_t i = 0; i < c; ++i) {
+                uint32_t p1 = y * w + x + w * i;        // refplane 中点下标
+                uint32_t p2 = p1 + PMDcfg.refPlane.cols();
+                fout << p1 << " " << p2 << "\n";
+                p1 += (c - 1);
+                p2 = p1 + PMDcfg.refPlane.cols();
+                fout << p1 << " " << p2 << "\n";
+            }
+            fout.close();
+        }
+
+        X_roi.resize(1, PMDcfg.roi.blockCols * PMDcfg.roi.blockRows);
+        Y_roi.resize(1, PMDcfg.roi.blockCols * PMDcfg.roi.blockRows);
+        Z.resize(1, PMDcfg.roi.blockCols * PMDcfg.roi.blockRows);
+
+        MatrixXfR pcl(3, PMDcfg.roi.blockCols * PMDcfg.roi.blockRows);
+        pcl.row(0) = X_roi;
+        pcl.row(1) = Y_roi;
+        pcl.row(2) = Z;
+
+        save_matrix_as_ply(pcl, PMDcfg.workDir + "/../surface.ply");
+
+    }
 
     ui->output_Edit->setPlainText("重建完成!");
 }
@@ -290,7 +376,7 @@ void MainWindow::on_sys_calib_Button_clicked() {
     fout << "translation of screen relative to camera:" << endl << CSTL_D << endl << endl;
     for (uint16_t i = 0; i < CBR.size(); ++i)
         fout << "CBR_" + std::to_string(i) + ":" << endl << CBR[i] << endl <<
-             "CBTL_" + std::to_string(i) + ":" << endl << CBTL[i] << endl << endl;
+             "CBTL_" + std::to_string(i) + ":" << endl << CBTL[i] << endl << "n:" << endl << n[i] << endl << endl;
 
     // 计算重投影误差(像素)
     if (PMDcfg.debug) {
@@ -620,8 +706,8 @@ void MainWindow::test() {
 
     }
 
-    // 测试 modal reconstruction
-    if (true) {
+    // 测试 modal reconstruction(测试通过)
+    if (false) {
         MatrixXfR resultZ(461, 461);
         MatrixXfR slope_x(461, 461);
         MatrixXfR slope_y(461, 461);
@@ -641,19 +727,25 @@ void MainWindow::test() {
         MatrixXfR Z;
         modal_reconstruction(slope_x, slope_y, Z, range, 4);
 
-        MatrixXfR X(461, 461), Y(461, 461), pcl;
+        MatrixXfR X(461, 461), Y(461, 461), pcl(3, 461 * 461);
         VectorXf t(461);
         for (uint32_t i = 0; i < 461; ++i)
             t(i) = 0.0001 * i;
         for (uint32_t i = 0; i < 461; ++i) {
             X.row(i) = t.transpose();
-            y.col(i) = t;
-
+            Y.col(i) = t;
         }
+        X /= 5;
+        Y /= 5;
+        X.resize(1, 461 * 461);
+        Y.resize(1, 461 * 461);
+        Z.resize(1, 461 * 461);
+        pcl.row(0) = X;
+        pcl.row(1) = Y;
+        pcl.row(2) = Z;
 
 
-
-        save_matrix_as_ply(Z, "D:/Program/3DReconstruct/Phase Measuring Deflectometry/test.ply");
+        save_matrix_as_ply(pcl, "D:/Program/3DReconstruct/Phase Measuring Deflectometry/test.ply");
 
         ui->output_Edit->setPlainText("reconstruction complete!");
     }
